@@ -15,6 +15,18 @@ export function bracketSizeFor(n) {
   return allowed.find((s) => s >= n) || 32;
 }
 
+/** Determine winner of a single bracket match (handles BYEs and ties). */
+function computeMatchWinner(m) {
+  if (m.scoreA != null && m.scoreB != null) {
+    if (m.scoreA > m.scoreB) return m.teamA;
+    if (m.scoreB > m.scoreA) return m.teamB;
+    return null; // tie, no winner yet
+  }
+  if (m.teamA && !m.teamB) return m.teamA; // BYE
+  if (m.teamB && !m.teamA) return m.teamB; // BYE
+  return null;
+}
+
 /** Generate empty bracket from standings. Top qualifiers fill first round. */
 export function generateBracket(standings, qualifiersCount) {
   const size = bracketSizeFor(qualifiersCount);
@@ -65,24 +77,13 @@ export function propagateWinners(rounds) {
   }));
   for (let r = 0; r < out.length; r++) {
     const rd = out[r];
-    rd.matches.forEach((m) => {
-      if (m.scoreA != null && m.scoreB != null) {
-        if (m.scoreA > m.scoreB) m.winner = m.teamA;
-        else if (m.scoreB > m.scoreA) m.winner = m.teamB;
-        else m.winner = null;
-      } else if (m.teamA && !m.teamB) m.winner = m.teamA;
-      else if (m.teamB && !m.teamA) m.winner = m.teamB;
-      else m.winner = null;
-    });
+    rd.matches.forEach((m) => { m.winner = computeMatchWinner(m); });
     // Propagate to next round
     const next = out[r + 1];
     if (!next) continue;
     next.matches.forEach((nm, i) => {
-      const winA = rd.matches[i * 2]?.winner;
-      const winB = rd.matches[i * 2 + 1]?.winner;
-      nm.teamA = winA || null;
-      nm.teamB = winB || null;
-      // Don't clear scores if user already filled in
+      nm.teamA = rd.matches[i * 2]?.winner || null;
+      nm.teamB = rd.matches[i * 2 + 1]?.winner || null;
     });
   }
   return out;

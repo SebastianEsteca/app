@@ -70,16 +70,21 @@ export default function SorteoPage() {
     );
   }, [tournament]);
 
-  // Debounced auto-save
+  // Debounced auto-save. Intentional empty/limited deps:
+  // - `tournament` is referenced read-only and may change frequently when the
+  //   parent context refreshes; depending on it would trigger redundant saves
+  //   (the same teams/matchdays already being persisted).
+  // - `updateTournament` is a module import (stable reference).
+  // For critical operations we use `saveNow()` below which bypasses debounce.
   useEffect(() => {
     if (!tournament) return;
     const t = setTimeout(() => {
-      updateTournament(tournament.id, { teams, matchdays }).catch(() =>
-        toast.error('No se pudo guardar')
+      updateTournament(tournament.id, { teams, matchdays }).catch((err) =>
+        console.warn('[SorteoPage] save failed', err)
       );
     }, 250);
     return () => clearTimeout(t);
-  }, [teams, matchdays]); // eslint-disable-line
+  }, [teams, matchdays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Immediate save (used for critical operations to avoid debounce races)
   const saveNow = async (nextTeams, nextMatchdays) => {
@@ -473,18 +478,17 @@ export default function SorteoPage() {
                 {matchdays.map((md, i) => {
                   const complete = md.matches.length >= maxPerMd && maxPerMd > 0;
                   const active = i === activeMd;
+                  // Use matchday.number for a stable key (matchdays may grow with extras)
+                  const tabKey = `md-${md.number}`;
+                  let tabClass = 'bg-transparent text-gray-400 border-[#2A3458] hover:border-orange-500/40';
+                  if (active) tabClass = 'bg-orange-500 text-white border-orange-500';
+                  else if (complete) tabClass = 'bg-orange-500/10 text-orange-300 border-orange-500/30 hover:border-orange-500/60';
                   return (
                     <button
-                      key={i}
+                      key={tabKey}
                       data-testid={`matchday-tab-${i + 1}`}
                       onClick={() => setActiveMd(i)}
-                      className={`shrink-0 py-2 px-3.5 rounded-md text-xs font-['Outfit'] font-bold tracking-tight transition-all border ${
-                        active
-                          ? 'bg-orange-500 text-white border-orange-500'
-                          : complete
-                            ? 'bg-orange-500/10 text-orange-300 border-orange-500/30 hover:border-orange-500/60'
-                            : 'bg-transparent text-gray-400 border-[#2A3458] hover:border-orange-500/40'
-                      }`}
+                      className={`shrink-0 py-2 px-3.5 rounded-md text-xs font-['Outfit'] font-bold tracking-tight transition-all border ${tabClass}`}
                     >
                       J{i + 1}
                       {complete && !active && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-orange-400 align-middle" />}

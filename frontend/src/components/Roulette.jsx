@@ -108,9 +108,12 @@ export const Roulette = ({ selectedTeam, candidates, onPicked }) => {
         >
           {reel.map((name, i) => {
             const isWinner = phase === 'revealed' && i === step + HIGHLIGHT_OFFSET;
+            // The reel is a static immutable list built once at render. Index is
+            // a perfectly stable key here because items never reorder or insert.
+            const itemKey = `${i}-${name}`;
             return (
               <div
-                key={i}
+                key={itemKey}
                 className={`roulette-item border-b border-[#2A3458]/60 ${
                   isWinner ? 'text-orange-300 font-black scale-105' : 'text-gray-400'
                 }`}

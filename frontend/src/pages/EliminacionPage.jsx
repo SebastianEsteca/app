@@ -134,7 +134,7 @@ export default function EliminacionPage() {
           <div className="overflow-x-auto pb-4">
             <div className="flex gap-6 min-w-max">
               {rounds.map((round, rIdx) => (
-                <div key={rIdx} className="flex flex-col gap-4 min-w-[280px]" data-testid={`bracket-round-${rIdx}`}>
+                <div key={round.name} className="flex flex-col gap-4 min-w-[280px]" data-testid={`bracket-round-${rIdx}`}>
                   <div className="text-center">
                     <p className="label-caps">Ronda</p>
                     <h3 className="text-lg font-['Outfit'] font-bold text-white">{round.name}</h3>
@@ -201,9 +201,16 @@ export default function EliminacionPage() {
   );
 }
 
+// Visual class for a bracket team name based on its outcome state
+const bracketNameClass = ({ isWinner, name }) => {
+  if (isWinner) return 'text-yellow-300';
+  if (name) return 'text-white';
+  return 'text-gray-500 italic';
+};
+
 const BracketTeamRow = ({ name, score, isWinner }) => (
   <div className={`flex items-center justify-between px-4 py-3 ${isWinner ? 'bg-orange-500/10' : ''}`}>
-    <span className={`font-semibold truncate ${isWinner ? 'text-yellow-300' : name ? 'text-white' : 'text-gray-500 italic'}`}>
+    <span className={`font-semibold truncate ${bracketNameClass({ isWinner, name })}`}>
       {name || 'Por definir'}
     </span>
     <span className={`font-['Outfit'] font-bold ${isWinner ? 'text-yellow-300' : 'text-gray-400'}`}>

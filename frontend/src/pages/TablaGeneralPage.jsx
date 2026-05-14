@@ -4,6 +4,13 @@ import { motion } from 'framer-motion';
 import { BarChart3, Trophy, TrendingUp } from 'lucide-react';
 import { computeStandings } from '../utils/standings';
 
+// Color class for goal-difference (positive = gold, negative = red, zero = neutral)
+const dgColor = (dg) => {
+  if (dg > 0) return 'text-yellow-300';
+  if (dg < 0) return 'text-red-300';
+  return 'text-gray-400';
+};
+
 export default function TablaGeneralPage() {
   const { tournament, refresh } = useOutletContext();
 
@@ -80,7 +87,7 @@ export default function TablaGeneralPage() {
                     <span className="text-right text-red-300">{row.PP}</span>
                     <span className="text-right text-gray-300">{row.GF}</span>
                     <span className="text-right text-gray-300">{row.GC}</span>
-                    <span className={`text-right font-bold ${row.DG > 0 ? 'text-yellow-300' : row.DG < 0 ? 'text-red-300' : 'text-gray-400'}`}>
+                    <span className={`text-right font-bold ${dgColor(row.DG)}`}>
                       {row.DG > 0 ? '+' : ''}{row.DG}
                     </span>
                     <span className="text-right font-['Outfit'] font-black text-orange-300 text-base">{row.Pts}</span>

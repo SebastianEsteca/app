@@ -128,6 +128,20 @@ export default function ViewerPage() {
 
 // ---------- Sub-tabs ----------
 
+// Visual class for podium positions (gold/silver/bronze)
+const podiumClass = (idx) => {
+  if (idx === 0) return 'bg-yellow-500 text-black';
+  if (idx === 1) return 'bg-gray-300 text-black';
+  return 'bg-orange-700 text-white';
+};
+
+// DG color class (positive = gold, negative = red, zero = neutral)
+const dgColor = (dg) => {
+  if (dg > 0) return 'text-yellow-300';
+  if (dg < 0) return 'text-red-300';
+  return 'text-gray-400';
+};
+
 const ViewerHome = ({ tournament, standings, progress, totalFinished, totalScheduled }) => {
   // Find next pending matches (first 5 across all matchdays)
   const upcoming = [];
@@ -200,9 +214,7 @@ const ViewerHome = ({ tournament, standings, progress, totalFinished, totalSched
             <div className="space-y-2">
               {top3.map((row, i) => (
                 <div key={row.team} className="flex items-center gap-3 bg-[#0A0E1F] border border-[#2A3458] rounded-md px-3 py-2.5">
-                  <span className={`w-7 h-7 rounded-md flex items-center justify-center font-['Outfit'] font-black text-xs ${
-                    i === 0 ? 'bg-yellow-500 text-black' : i === 1 ? 'bg-gray-300 text-black' : 'bg-orange-700 text-white'
-                  }`}>{i + 1}</span>
+                  <span className={`w-7 h-7 rounded-md flex items-center justify-center font-['Outfit'] font-black text-xs ${podiumClass(i)}`}>{i + 1}</span>
                   <div className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold text-white overflow-hidden" style={{ background: row.color || '#F26321' }}>
                     {row.logo ? <img src={row.logo} alt="" className="w-full h-full object-cover" /> : row.short || row.team.slice(0, 2).toUpperCase()}
                   </div>
@@ -327,7 +339,7 @@ const ViewerTabla = ({ tournament, standings }) => {
                 <span className="text-right text-red-300">{row.PP}</span>
                 <span className="text-right text-gray-300">{row.GF}</span>
                 <span className="text-right text-gray-300">{row.GC}</span>
-                <span className={`text-right font-bold ${row.DG > 0 ? 'text-yellow-300' : row.DG < 0 ? 'text-red-300' : 'text-gray-400'}`}>{row.DG > 0 ? '+' : ''}{row.DG}</span>
+                <span className={`text-right font-bold ${dgColor(row.DG)}`}>{row.DG > 0 ? '+' : ''}{row.DG}</span>
                 <span className="text-right font-['Outfit'] font-black text-orange-300">{row.Pts}</span>
               </motion.div>
             );
@@ -351,8 +363,8 @@ const ViewerBracket = ({ tournament }) => {
   return (
     <div className="overflow-x-auto pb-4">
       <div className="flex gap-6 min-w-max">
-        {rounds.map((round, rIdx) => (
-          <div key={rIdx} className="flex flex-col gap-4 min-w-[260px]">
+        {rounds.map((round) => (
+          <div key={round.name} className="flex flex-col gap-4 min-w-[260px]">
             <div className="text-center">
               <p className="label-caps">Ronda</p>
               <h3 className="font-['Outfit'] font-bold text-white">{round.name}</h3>
@@ -373,9 +385,15 @@ const ViewerBracket = ({ tournament }) => {
   );
 };
 
+const bracketNameClass = ({ isWinner, name }) => {
+  if (isWinner) return 'text-yellow-300';
+  if (name) return 'text-white';
+  return 'text-gray-500 italic';
+};
+
 const BracketRow = ({ name, score, isWinner }) => (
   <div className={`flex items-center justify-between px-4 py-3 ${isWinner ? 'bg-orange-500/10' : ''}`}>
-    <span className={`font-semibold truncate ${isWinner ? 'text-yellow-300' : name ? 'text-white' : 'text-gray-500 italic'}`}>
+    <span className={`font-semibold truncate ${bracketNameClass({ isWinner, name })}`}>
       {name || 'Por definir'}
     </span>
     <span className={`font-['Outfit'] font-bold ${isWinner ? 'text-yellow-300' : 'text-gray-400'}`}>

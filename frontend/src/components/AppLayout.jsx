@@ -29,12 +29,13 @@ export const AppLayout = () => {
     try {
       const data = await getTournament(tid);
       setTournament(data);
-    } catch (e) {
+    } catch (err) {
+      console.warn('[AppLayout] failed to load tournament', tid, err);
       setTournament(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // deps intentionally empty: getTournament & setState fns are stable refs
 
   useEffect(() => { refreshList(); }, [refreshList]);
   useEffect(() => { loadTournament(id); }, [id, loadTournament]);

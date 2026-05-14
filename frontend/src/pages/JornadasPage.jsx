@@ -10,6 +10,13 @@ import { updateTournament } from '../utils/api';
 import { toast } from 'sonner';
 import { isAdmin } from '../utils/auth';
 
+// Compute border class for a matchday card based on its state
+const matchdayBorder = ({ isExtra, complete }) => {
+  if (isExtra) return 'border-orange-500/50 shadow-[0_0_18px_rgba(242,99,33,0.15)]';
+  if (complete) return 'border-yellow-500/50';
+  return 'border-[#2A3458]';
+};
+
 const statusLabel = (s) => ({ pending: 'Pendiente', in_progress: 'En juego', finished: 'Finalizado' }[s] || 'Pendiente');
 const statusStyle = (s) => ({
   pending:     { background: 'rgba(100,116,143,0.12)', color: '#94A3B8', border: '1px solid rgba(100,116,143,0.25)' },
@@ -87,10 +94,7 @@ export default function JornadasPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: mdIdx * 0.04 }}
-                className={`bg-[#121830] border rounded-xl overflow-hidden ${
-                  isExtra ? 'border-orange-500/50 shadow-[0_0_18px_rgba(242,99,33,0.15)]'
-                  : complete ? 'border-yellow-500/50' : 'border-[#2A3458]'
-                }`}
+                className={`bg-[#121830] border rounded-xl overflow-hidden ${matchdayBorder({ isExtra, complete })}`}
                 data-testid={`jornada-${md.number}`}
               >
                 <div className="px-5 py-3 flex items-center justify-between gap-2 bg-[#0F1428] border-b border-[#2A3458]">

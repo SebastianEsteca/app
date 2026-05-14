@@ -41,9 +41,11 @@ export const MatchdayTable = ({ matchday, index, totalTeams }) => {
       <div className="space-y-2">
         {Array.from({ length: Math.max(expected, matchday.matches.length) }).map((_, i) => {
           const match = matchday.matches[i];
+          // Use match.id when present (stable across reorders); fallback to slot index for empty slots
+          const slotKey = match?.id || `slot-${matchday.number}-${i}`;
           return (
             <div
-              key={i}
+              key={slotKey}
               className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${
                 match
                   ? 'bg-[#0A0E1F] border border-[#2A3458]'
