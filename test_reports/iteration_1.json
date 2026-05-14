@@ -1,0 +1,36 @@
+{
+  "summary": "Full backend (pytest) + frontend (Playwright) testing of Spanish football tournament organizer. All 7 backend tests passed. All 17 user-facing features verified working: Spanish UI, 11-team validation, add/remove/duplicate, navigation, full-tournament generation (30/30 matches, 6 rested teams, no repeats), manual roulette draw, matchday tabs with completion indicators, single-matchday generation, reset (AlertDialog + DELETE), sound toggle, export menu (PDF/Image), stats panel (progress, rested, per-team count), persistence/reload restore.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tournament.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py uses deprecated @app.on_event('shutdown') - migrate to lifespan context manager (FastAPI 0.93+).",
+    "App.js debounced PUT fires on every state change including the initial setMatchdays after load (300ms delay); acceptable but could cause an extra no-op PUT on first dashboard load.",
+    "Tournament backend has no auth; single global document keyed by TOURNAMENT_ID='default-tournament' - acceptable per problem statement (single tournament) but documented limitation.",
+    "TeamsSetup input becomes disabled at 11 teams, so duplicate validation can only be tested below 11 teams; UX-wise consider keeping input enabled with explicit error when >=11 instead of silent disable.",
+    "Roulette delay is 900ms post-reveal + ~3-4s spin; transient sonner success toast may be missed by automated tests but works for users (verified visually)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_tournament.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 pytest)",
+    "frontend": "100% (all 17 reviewed flows verified, including full-tournament 30/30 generation, manual roulette adds match, reload restores state)"
+  },
+  "test_credentials": "N/A - no auth in app",
+  "seed_data_creation": "Tests create/cleanup tournaments via DELETE /api/tournament; auto-clean before each pytest function and on module teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Frontend external URL: https://liga-sorteo-equipos.preview.emergentagent.com (REACT_APP_BACKEND_URL). Backend has only 3 endpoints: GET/PUT/DELETE /api/tournament. UI is entirely in Spanish. Comenzar sorteo button only enabled at exactly 11 teams. TeamsSetup input is disabled at 11 - test duplicate with <11 teams. Roulette takes ~5s to reveal + 900ms before onPicked; sonner toasts vanish quickly so verify result via DOM/match cards rather than toast text. Match-slot labels in MatchdayTable use 'P. 01' format (not 'Partido 1'). After 'Torneo completo' generation expect 30 matches, 6 rested teams (5 teams play 6 matches, 6 teams play 5 - per math constraint, not a bug). Pytest file at /app/backend/tests/test_tournament.py is reusable for regression."
+}
