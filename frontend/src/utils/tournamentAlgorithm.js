@@ -1,15 +1,9 @@
-// Tournament pairing logic for 11 teams, 6 matchdays.
+// Generic tournament pairing logic. Supports any team count and matchday count.
 // Constraints:
-// - Max 1 match between any pair (no repeats).
-// - Each team plays at most once per matchday.
-// - Each matchday: 5 matches + 1 resting team (with 11 teams).
-// - Each team rests at most once across the 6 matchdays.
+// - No repeated opponents (canonical pair key).
+// - No team plays twice in the same matchday.
+// - Resting team(s) when odd number of teams; allows auto-rest assignment.
 
-export const TOTAL_MATCHDAYS = 6;
-export const MATCHES_PER_MATCHDAY = 5;
-export const TARGET_MATCHES_PER_TEAM = 6;
-
-/** Build the set of "played pairs" as canonical "A|B" (sorted). */
 export function pairKey(a, b) {
   return [a, b].sort().join('|');
 }
@@ -22,9 +16,8 @@ export function buildPlayedPairs(matchdays) {
   return set;
 }
 
-/** Compute how many matches each team has played overall. */
 export function buildMatchCount(teams, matchdays) {
-  const counts = Object.fromEntries(teams.map((t) => [t, 0]));
+  const counts = Object.fromEntries(teams.map((t) => [t.name, 0]));
   matchdays.forEach((md) => {
     md.matches.forEach((m) => {
       counts[m.teamA] = (counts[m.teamA] || 0) + 1;
@@ -34,7 +27,6 @@ export function buildMatchCount(teams, matchdays) {
   return counts;
 }
 
-/** Teams already busy in given matchday (playing or resting). */
 export function busyInMatchday(md) {
   const busy = new Set();
   md.matches.forEach((m) => {
@@ -45,7 +37,6 @@ export function busyInMatchday(md) {
   return busy;
 }
 
-/** Teams that have rested in any matchday. */
 export function teamsRested(matchdays) {
   const rested = new Set();
   matchdays.forEach((md) => {
@@ -54,24 +45,23 @@ export function teamsRested(matchdays) {
   return rested;
 }
 
-/** Get valid opponents for a given team in a given matchday. */
-export function getValidOpponents(team, matchdayIndex, teams, matchdays) {
+export function getValidOpponents(teamName, matchdayIndex, teams, matchdays, maxMatches) {
   const playedPairs = buildPlayedPairs(matchdays);
   const matchCount = buildMatchCount(teams, matchdays);
   const busy = busyInMatchday(matchdays[matchdayIndex]);
-
-  return teams.filter((other) => {
-    if (other === team) return false;
-    if (busy.has(other)) return false;
-    if (playedPairs.has(pairKey(team, other))) return false;
-    if ((matchCount[other] || 0) >= TARGET_MATCHES_PER_TEAM) return false;
-    return true;
-  });
+  return teams
+    .map((t) => t.name)
+    .filter((other) => {
+      if (other === teamName) return false;
+      if (busy.has(other)) return false;
+      if (playedPairs.has(pairKey(teamName, other))) return false;
+      if ((matchCount[other] || 0) >= maxMatches) return false;
+      return true;
+    });
 }
 
-/** Initialize empty matchdays. */
-export function emptyMatchdays() {
-  return Array.from({ length: TOTAL_MATCHDAYS }, (_, i) => ({
+export function emptyMatchdays(count) {
+  return Array.from({ length: count }, (_, i) => ({
     number: i + 1,
     matches: [],
     resting: null,
@@ -79,23 +69,21 @@ export function emptyMatchdays() {
 }
 
 /**
- * Circle method (round-robin) for odd number of teams.
- * For 11 teams, we add a phantom "BYE" and rotate. Whoever plays BYE rests.
- * Returns array of TOTAL_MATCHDAYS matchdays.
+ * Round-robin via circle method. Generates `totalMatchdays` matchdays.
+ * If team count is odd, a phantom BYE rotates and whoever pairs with BYE rests.
  */
-export function generateRoundRobin(teams) {
-  if (teams.length !== 11) {
-    throw new Error('Se requieren exactamente 11 equipos para generar el torneo.');
+export function generateRoundRobin(teams, totalMatchdays) {
+  if (teams.length < 2) {
+    throw new Error('Se requieren al menos 2 equipos.');
   }
-  const n = teams.length;
-  const withBye = [...teams, '__BYE__'];
-  const size = withBye.length; // 12
-  const rounds = size - 1; // 11 possible matchdays, but we only need 6
-
+  const names = teams.map((t) => t.name);
+  const withBye = names.length % 2 === 0 ? [...names] : [...names, '__BYE__'];
+  const size = withBye.length;
+  const rounds = size - 1; // maximum possible matchdays for full round-robin
   const arr = [...withBye];
   const result = [];
 
-  for (let r = 0; r < rounds && result.length < TOTAL_MATCHDAYS; r++) {
+  for (let r = 0; r < Math.min(rounds, totalMatchdays); r++) {
     const matches = [];
     let resting = null;
     for (let i = 0; i < size / 2; i++) {
@@ -106,56 +94,58 @@ export function generateRoundRobin(teams) {
       else matches.push({ teamA: a, teamB: b });
     }
     result.push({ number: result.length + 1, matches, resting });
-    // Rotate: keep first fixed, rotate the rest clockwise
+    // rotate (keep first fixed)
     const fixed = arr[0];
     const rest = arr.slice(1);
     rest.unshift(rest.pop());
     arr.splice(0, arr.length, fixed, ...rest);
   }
 
-  // Assign ids
+  // Pad with empty matchdays if totalMatchdays > rounds
+  while (result.length < totalMatchdays) {
+    result.push({ number: result.length + 1, matches: [], resting: null });
+  }
+
   return result.map((md) => ({
     ...md,
     matches: md.matches.map((m) => ({
       id: crypto.randomUUID(),
       matchday: md.number,
-      ...m,
+      teamA: m.teamA,
+      teamB: m.teamB,
+      scoreA: null,
+      scoreB: null,
+      date: '',
+      time: '',
+      status: 'pending',
     })),
   }));
 }
 
-/**
- * Generate matches for one specific matchday using greedy + backtracking,
- * prioritizing teams with fewest remaining valid opponents.
- */
-export function generateMatchday(matchdayIndex, teams, matchdays) {
+/** Generate one matchday using backtracking on remaining teams. */
+export function generateMatchday(matchdayIndex, teams, matchdays, maxMatches, allowAutoRest) {
   const md = matchdays[matchdayIndex];
   const playedPairs = buildPlayedPairs(matchdays);
   const matchCount = buildMatchCount(teams, matchdays);
   const rested = teamsRested(matchdays);
   const busy = busyInMatchday(md);
 
-  // Candidates: not busy in this matchday yet
-  const available = teams.filter(
-    (t) => !busy.has(t) && (matchCount[t] || 0) < TARGET_MATCHES_PER_TEAM
-  );
+  const available = teams
+    .map((t) => t.name)
+    .filter(
+      (n) => !busy.has(n) && (matchCount[n] || 0) < maxMatches
+    );
 
-  // Pick a resting team if none assigned yet and we have 11 available
   let resting = md.resting;
-  const newMatches = [...md.matches];
-
-  // Helper: which teams can still participate?
   const participating = available.slice();
 
-  // If no resting yet and odd participants, pick one that hasn't rested yet
-  if (!resting && participating.length % 2 === 1) {
-    const candidates = participating.filter((t) => !rested.has(t));
-    resting = (candidates.length > 0 ? candidates : participating)[0];
+  if (allowAutoRest && !resting && participating.length % 2 === 1) {
+    const fresh = participating.filter((t) => !rested.has(t));
+    resting = (fresh.length > 0 ? fresh : participating)[0];
     const idx = participating.indexOf(resting);
     if (idx >= 0) participating.splice(idx, 1);
   }
 
-  // Build adjacency: each team -> valid opponents within participating
   const possible = new Map();
   participating.forEach((t) => {
     possible.set(
@@ -166,10 +156,8 @@ export function generateMatchday(matchdayIndex, teams, matchdays) {
     );
   });
 
-  // Backtracking pairing
   function backtrack(remaining) {
     if (remaining.length === 0) return [];
-    // Pick the team with fewest options
     remaining.sort(
       (a, b) =>
         (possible.get(a)?.filter((x) => remaining.includes(x)).length || 0) -
@@ -181,9 +169,7 @@ export function generateMatchday(matchdayIndex, teams, matchdays) {
     for (const opp of opts) {
       const next = remaining.filter((t) => t !== team && t !== opp);
       const rest = backtrack(next);
-      if (rest !== null) {
-        return [{ teamA: team, teamB: opp }, ...rest];
-      }
+      if (rest !== null) return [{ teamA: team, teamB: opp }, ...rest];
     }
     return null;
   }
@@ -193,14 +179,20 @@ export function generateMatchday(matchdayIndex, teams, matchdays) {
     return { success: false, message: 'No se pudo emparejar esta jornada sin repetir rivales.' };
   }
 
-  pairs.forEach((p) => {
-    newMatches.push({
+  const newMatches = [
+    ...md.matches,
+    ...pairs.map((p) => ({
       id: crypto.randomUUID(),
       matchday: md.number,
       teamA: p.teamA,
       teamB: p.teamB,
-    });
-  });
+      scoreA: null,
+      scoreB: null,
+      date: '',
+      time: '',
+      status: 'pending',
+    })),
+  ];
 
   const updated = matchdays.map((m, i) =>
     i === matchdayIndex ? { ...m, matches: newMatches, resting } : m
@@ -208,33 +200,35 @@ export function generateMatchday(matchdayIndex, teams, matchdays) {
   return { success: true, matchdays: updated };
 }
 
-/** Generate full tournament from scratch using round-robin. */
-export function generateFullTournament(teams) {
-  return generateRoundRobin(teams);
+export function generateFullTournament(teams, totalMatchdays) {
+  return generateRoundRobin(teams, totalMatchdays);
 }
 
-/** Statistics per team */
-export function computeStats(teams, matchdays) {
+/** Stats per team. */
+export function computeStats(teams, matchdays, maxMatches) {
   const matchCount = buildMatchCount(teams, matchdays);
   const playedPairs = buildPlayedPairs(matchdays);
   const rested = teamsRested(matchdays);
-
   return teams.map((t) => {
-    const remaining = teams.filter(
-      (o) => o !== t && !playedPairs.has(pairKey(t, o))
-    );
+    const remaining = teams
+      .map((x) => x.name)
+      .filter((o) => o !== t.name && !playedPairs.has(pairKey(t.name, o)));
     return {
-      team: t,
-      played: matchCount[t] || 0,
+      team: t.name,
+      played: matchCount[t.name] || 0,
+      maxMatches,
       remainingOpponents: remaining,
-      hasRested: rested.has(t),
+      hasRested: rested.has(t.name),
     };
   });
 }
 
-/** Tournament completion ratio (0..1) based on total possible matches (30). */
-export function tournamentProgress(matchdays) {
+export function tournamentProgress(matchdays, maxPossible) {
   const totalScheduled = matchdays.reduce((acc, md) => acc + md.matches.length, 0);
-  const maxMatches = TOTAL_MATCHDAYS * MATCHES_PER_MATCHDAY; // 30
-  return Math.min(1, totalScheduled / maxMatches);
+  return maxPossible > 0 ? Math.min(1, totalScheduled / maxPossible) : 0;
+}
+
+/** Max matches per matchday for given participants. */
+export function maxMatchesPerMatchday(teamsCount) {
+  return Math.floor(teamsCount / 2);
 }

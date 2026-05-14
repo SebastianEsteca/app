@@ -1,0 +1,58 @@
+{
+  "summary": "Backend (pytest 12/12) and frontend (Playwright) tested for Copa ESTECA 2026 multi-tournament platform. All 12 new plural-endpoint tests pass (tournaments_v2 collection, create/get/put/delete/list/summary). UI: Spanish content, sidebar, Crear-torneo form, Sorteo team entry, Torneo completo generation (30/30 matches, 0 repeats), Eliminación/Estadísticas placeholders, Créditos page, delete-from-Inicio + AlertDialog, reload-persistence all work. Found 2 critical state-sync issues: (1) Jornadas y partidos page shows 'Aún no hay partidos' for all 6 jornadas despite backend having 30 matches, (2) Tabla general shows 'Aún no hay equipos registrados' despite 11 teams added. Inicio card shows 0/11 equipos and 0/6 jornada (teams_registered=0 in summary), suggesting Sorteo team additions are not being persisted (or aren't being computed in summary).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "shutdown handler", "issue": "Uses deprecated @app.on_event('shutdown'); migrate to lifespan context manager"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Sorteo -> Jornadas navigation",
+        "issue": "After 'Torneo completo' generation, navigating to /t/{id}/jornadas shows 'Aún no hay partidos asignados a esta jornada' for all 6 jornadas even though GET /api/tournaments/{id} returns 30 matches across 6 matchdays. JornadasPage appears to read stale AppLayout context without refetching after Sorteo updates.",
+        "affected_selectors": ["nav-jornadas", "jornadas page matchday cards"]
+      },
+      {
+        "flow": "Sorteo -> Tabla general navigation",
+        "issue": "Tabla general page shows 'Aún no hay equipos registrados' even after adding 11 teams in Sorteo. Same root cause (stale context / no refetch on route change).",
+        "affected_selectors": ["nav-tabla"]
+      },
+      {
+        "flow": "Sorteo teams persistence -> Inicio card",
+        "issue": "Inicio TournamentCard displays '0/11 EQUIPOS' and '0/6 JORNADA' and 0% AVANCE after adding 11 teams + generating all matchdays. Backend GET /tournaments/{id} confirms matchdays have 30 matches, but list-summary endpoint computes teams_registered=0 because the teams[] array on the document remains empty. This means SorteoPage's add-team flow updates local state and the matchdays survive via debounced PUT, but the teams[] payload is not being persisted to MongoDB (or PUT is sending matchdays only).",
+        "affected_selectors": ["TournamentCard equipos stat", "/api/tournaments summary"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tournament.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix SorteoPage debounced PUT to include teams[] payload alongside matchdays so teams_registered/progress compute correctly and Tabla shows teams.",
+    "Make JornadasPage and TablaGeneralPage subscribe to live tournament state from AppLayout (refetch on route change or share matchdays via context/store) so freshly generated matches/teams render without page reload.",
+    "Verify Inicio TournamentCard stats refresh after returning from Sorteo (currently shows 0/11)."
+  ],
+  "critical_code_review_comments": [
+    "AppLayout likely fetches tournament once and child pages (Jornadas/Tabla) consume that stale snapshot; introduce a refetch trigger or a shared store (Zustand/Context with updater) keyed on tournament_id.",
+    "Consider unifying SorteoPage's PUT payload: send {teams, matchdays} together every time to avoid partial-update divergence.",
+    "_summary() in server.py computes current_matchday only from matchdays that contain matches — acceptable, but combine with matches_played count for clarity.",
+    "Deprecated FastAPI @app.on_event('shutdown') – migrate to lifespan handler."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_tournament.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 pytest)",
+    "frontend": "~75% — Crear torneo, Sorteo team entry, Torneo completo generation, Roulette infra, Reset, Sound toggle, Export menu, Eliminación/Estadísticas placeholders, Créditos, Delete from Inicio with AlertDialog, Persistence reload all work. Jornadas page + Tabla general + Inicio card stats do NOT reflect updated state (3 integration failures)."
+  },
+  "test_credentials": "N/A - app has no auth",
+  "seed_data_creation": "Tests create TEST_-prefixed tournaments and clean up via DELETE /api/tournaments/{id} in fixtures.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend BASE_URL pulled from REACT_APP_BACKEND_URL env (currently https://liga-sorteo-equipos.preview.emergentagent.com). Endpoints are plural: /api/tournaments (list+post), /api/tournaments/{id} (get/put/delete). Collection is tournaments_v2. Frontend testids used: hero-create-button, sidebar-crear-link, submit-create, nav-inicio/crear/creditos/sorteo/jornadas/tabla/eliminacion/estadisticas, add-team-input, add-short-input, add-team-button, add-team-logo-input, toggle-sound-button, export-button, reset-tournament-button, delete-tournament-*. AlertDialog confirm uses 'Generar' / 'Eliminar'. After clicking 'Torneo completo' confirm with 'Generar' button. Backend confirms 30 matches + 0 repeats generated correctly, but Jornadas/Tabla UI pages don't show them — issue is in state propagation between SorteoPage updates and sibling routes, not in backend.",
+  "rca of the issue": "Sorteo page works (local state + debounced PUT for matchdays). However: (a) The team array isn't being persisted (Inicio card shows 0/11 teams_registered). (b) JornadasPage and TablaGeneralPage do not refetch the tournament from /api/tournaments/{id} on mount/route-change; they read from AppLayout's initial snapshot which doesn't include the matches/teams created during the Sorteo session. Reproduction: create tournament -> add 11 teams in Sorteo -> click 'Torneo completo' + confirm -> click 'Jornadas y partidos' nav -> observe empty jornadas. Backend GET /api/tournaments/{id} returns 30 matches confirming the data exists server-side."
+}
