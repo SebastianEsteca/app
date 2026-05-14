@@ -50,6 +50,23 @@ class Matchday(BaseModel):
     number: int
     matches: List[MatchEntry] = []
     resting: Optional[str] = None
+    is_extra: bool = False  # Jornada Extra (auto-added to equalize matches)
+
+
+class BracketMatch(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    teamA: Optional[str] = None
+    teamB: Optional[str] = None
+    scoreA: Optional[int] = None
+    scoreB: Optional[int] = None
+    winner: Optional[str] = None
+
+
+class BracketRound(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str  # "Octavos", "Cuartos", "Semifinal", "Final"
+    matches: List[BracketMatch] = []
 
 
 class Tournament(BaseModel):
@@ -63,10 +80,20 @@ class Tournament(BaseModel):
     matches_per_team: int = 6
     allow_auto_rest: bool = True
     auto_generate: bool = False
+    # Advanced scheduling options
+    max_matches_per_matchday: Optional[int] = None
+    allow_double_matches: bool = False
+    allow_extra_matchdays: bool = True
+    allow_repeated_opponents: bool = False
+    balance_level: Literal["strict", "flexible", "fast"] = "flexible"
+    # Admin gate
+    admin_pin: Optional[str] = ""
+    # Assets
     primary_logo: Optional[str] = ""
     secondary_logo: Optional[str] = ""
     teams: List[TeamConfig] = []
     matchdays: List[Matchday] = []
+    bracket: List[BracketRound] = []
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -99,6 +126,12 @@ class TournamentCreate(BaseModel):
     matches_per_team: int = 6
     allow_auto_rest: bool = True
     auto_generate: bool = False
+    max_matches_per_matchday: Optional[int] = None
+    allow_double_matches: bool = False
+    allow_extra_matchdays: bool = True
+    allow_repeated_opponents: bool = False
+    balance_level: Literal["strict", "flexible", "fast"] = "flexible"
+    admin_pin: Optional[str] = ""
     primary_logo: Optional[str] = ""
     secondary_logo: Optional[str] = ""
 
@@ -113,10 +146,17 @@ class TournamentUpdate(BaseModel):
     matches_per_team: Optional[int] = None
     allow_auto_rest: Optional[bool] = None
     auto_generate: Optional[bool] = None
+    max_matches_per_matchday: Optional[int] = None
+    allow_double_matches: Optional[bool] = None
+    allow_extra_matchdays: Optional[bool] = None
+    allow_repeated_opponents: Optional[bool] = None
+    balance_level: Optional[Literal["strict", "flexible", "fast"]] = None
+    admin_pin: Optional[str] = None
     primary_logo: Optional[str] = None
     secondary_logo: Optional[str] = None
     teams: Optional[List[TeamConfig]] = None
     matchdays: Optional[List[Matchday]] = None
+    bracket: Optional[List[BracketRound]] = None
 
 
 def _summary(doc: dict) -> dict:
@@ -198,6 +238,28 @@ async def get_tournament(tournament_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Torneo no encontrado")
     return Tournament(**doc)
+
+
+@api_router.get("/public/tournaments/{tournament_id}", response_model=Tournament)
+async def get_tournament_public(tournament_id: str):
+    """Public read-only view — excludes admin_pin."""
+    doc = await db.tournaments_v2.find_one({"id": tournament_id}, {"_id": 0, "admin_pin": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Torneo no encontrado")
+    doc["admin_pin"] = ""  # placeholder so Tournament model validates
+    return Tournament(**doc)
+
+
+@api_router.post("/tournaments/{tournament_id}/verify-pin")
+async def verify_pin(tournament_id: str, payload: dict):
+    doc = await db.tournaments_v2.find_one({"id": tournament_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Torneo no encontrado")
+    stored = (doc.get("admin_pin") or "").strip()
+    provided = (payload.get("pin") or "").strip()
+    if not stored:
+        return {"valid": True, "open": True}
+    return {"valid": provided == stored, "open": False}
 
 
 @api_router.put("/tournaments/{tournament_id}", response_model=Tournament)

@@ -10,11 +10,16 @@ import TablaGeneralPage from './pages/TablaGeneralPage';
 import EliminacionPage from './pages/EliminacionPage';
 import EstadisticasPage from './pages/EstadisticasPage';
 import CreditosPage from './pages/CreditosPage';
+import ViewerPage from './pages/ViewerPage';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public viewer (no sidebar) */}
+        <Route path="/v/:id" element={<ViewerPage />} />
+
+        {/* Admin / editor (with sidebar layout) */}
         <Route element={<AppLayout />}>
           <Route index element={<InicioPage />} />
           <Route path="crear" element={<CrearTorneoPage />} />

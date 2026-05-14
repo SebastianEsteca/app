@@ -20,10 +20,11 @@ import {
 import { toast } from 'sonner';
 import { Roulette } from '../components/Roulette';
 import { MatchdayTable } from '../components/MatchdayTable';
+import { SummaryPanel } from '../components/SummaryPanel';
 import { updateTournament } from '../utils/api';
 import { playTick, playSuccess, playError, isSoundEnabled, setSoundEnabled } from '../utils/sounds';
 import {
-  emptyMatchdays, generateMatchday, generateFullTournament, getValidOpponents,
+  emptyMatchdays, generateMatchday, generateBalancedTournament, getValidOpponents,
   buildPlayedPairs, buildMatchCount, maxMatchesPerMatchday, pairKey,
 } from '../utils/tournamentAlgorithm';
 import { exportElementToImage, exportElementToPDF } from '../utils/exporter';
@@ -243,15 +244,29 @@ export default function SorteoPage() {
 
   const handleAutoTournament = () => {
     if (!isFull) { toast.error('Agrega todos los equipos primero'); playError(); return; }
-    try {
-      const next = generateFullTournament(teams, tournament.matchdays_count);
-      setMatchdays(next);
-      saveNow(teams, next);
-      playSuccess();
-      toast.success('¡Torneo completo generado!');
-    } catch (e) {
-      toast.error(e.message); playError();
+    const result = generateBalancedTournament(teams, {
+      targetMatches: tournament.matches_per_team,
+      initialMatchdays: tournament.matchdays_count,
+      maxMatchesPerMatchday: tournament.max_matches_per_matchday || maxMatchesPerMatchday(tournament.teams_count),
+      allowDouble: tournament.allow_double_matches,
+      allowExtra: tournament.allow_extra_matchdays,
+      allowRepeats: tournament.allow_repeated_opponents,
+      balance: tournament.balance_level,
+    });
+    if (result.impossible) {
+      toast.error(result.warnings[0] || 'Configuración imposible.');
+      playError();
+      return;
     }
+    setMatchdays(result.matchdays);
+    saveNow(teams, result.matchdays);
+    playSuccess();
+    if (result.extraCount > 0) {
+      toast.success(`Torneo generado con ${result.extraCount} jornada(s) extra para equilibrar.`);
+    } else {
+      toast.success('¡Torneo completo generado!');
+    }
+    result.warnings.forEach((w) => toast.message(w));
   };
 
   const handleReset = () => {
@@ -534,9 +549,12 @@ export default function SorteoPage() {
           )}
         </div>
 
-        {/* Right: Quick links */}
+        {/* Right: Quick links + Summary */}
         <div className="lg:col-span-1">
           <div className="lg:sticky lg:top-[100px] space-y-3">
+            {isFull && (
+              <SummaryPanel teams={teams} matchdays={matchdays} targetMatches={tournament.matches_per_team} />
+            )}
             <QuickLink onClick={() => navigate(`/t/${id}/jornadas`)} title="Jornadas y partidos" desc="Ver y editar el calendario" />
             <QuickLink onClick={() => navigate(`/t/${id}/tabla`)} title="Tabla general" desc="Posiciones y clasificación" />
             <QuickLink onClick={() => navigate(`/t/${id}/eliminacion`)} title="Eliminación directa" desc="Bracket de finales" />
@@ -544,7 +562,7 @@ export default function SorteoPage() {
               <p className="label-caps mb-3">Resumen rápido</p>
               <ul className="space-y-2 text-sm text-gray-300">
                 <li className="flex justify-between"><span className="text-gray-500">Equipos</span><span>{teams.length}/{tournament.teams_count}</span></li>
-                <li className="flex justify-between"><span className="text-gray-500">Jornadas</span><span>{tournament.matchdays_count}</span></li>
+                <li className="flex justify-between"><span className="text-gray-500">Jornadas</span><span>{matchdays.length}</span></li>
                 <li className="flex justify-between"><span className="text-gray-500">Clasifican</span><span>{tournament.qualifiers_count}</span></li>
                 <li className="flex justify-between"><span className="text-gray-500">Partidos/equipo</span><span>{tournament.matches_per_team}</span></li>
               </ul>

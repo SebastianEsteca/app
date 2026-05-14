@@ -36,6 +36,11 @@ export default function CrearTorneoPage() {
     matches_per_team: 6,
     allow_auto_rest: true,
     auto_generate: false,
+    allow_double_matches: false,
+    allow_extra_matchdays: true,
+    allow_repeated_opponents: false,
+    balance_level: 'flexible',
+    admin_pin: '',
     primary_logo: '',
     secondary_logo: '',
   });
@@ -176,6 +181,51 @@ export default function CrearTorneoPage() {
             onChange={(v) => set('auto_generate', v)}
             testId="form-auto-generate"
           />
+          <ToggleRow
+            label="Permitir jornadas extra"
+            description="Crea jornadas adicionales si no se logra equilibrar el calendario."
+            value={form.allow_extra_matchdays}
+            onChange={(v) => set('allow_extra_matchdays', v)}
+            testId="form-allow-extra"
+          />
+          <ToggleRow
+            label="Permitir dobles partidos en una jornada"
+            description="Un equipo puede jugar dos veces en la misma jornada si es necesario."
+            value={form.allow_double_matches}
+            onChange={(v) => set('allow_double_matches', v)}
+            testId="form-allow-double"
+          />
+          <ToggleRow
+            label="Permitir rivales repetidos"
+            description="Un equipo puede enfrentarse a otro más de una vez."
+            value={form.allow_repeated_opponents}
+            onChange={(v) => set('allow_repeated_opponents', v)}
+            testId="form-allow-repeats"
+          />
+          <Field label="Nivel de equilibrio">
+            <Select value={form.balance_level} onValueChange={(v) => set('balance_level', v)}>
+              <SelectTrigger data-testid="form-balance-level" className="bg-[#0A0E1F] border-[#2A3458] text-white h-11">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#121830] border-[#2A3458] text-white">
+                <SelectItem value="strict" className="focus:bg-orange-500/10">Estrictamente equilibrado</SelectItem>
+                <SelectItem value="flexible" className="focus:bg-orange-500/10">Flexible</SelectItem>
+                <SelectItem value="fast" className="focus:bg-orange-500/10">Generación rápida</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="PIN de administrador (4 dígitos)">
+            <Input
+              data-testid="form-admin-pin"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={form.admin_pin}
+              onChange={(e) => set('admin_pin', e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="Opcional · vacío = acceso libre"
+              className="bg-[#0A0E1F] border-[#2A3458] text-white h-11 tracking-[0.3em] font-['Outfit'] font-bold focus-visible:ring-orange-500"
+            />
+          </Field>
         </Section>
 
         {/* Section: Logos */}

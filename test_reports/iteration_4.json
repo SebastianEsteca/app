@@ -1,0 +1,50 @@
+{
+  "summary": "Phase 2 backend + critical frontend integration tested. Backend 23/23 pytest PASS (11 new Phase 2 tests covering admin_pin/balance_level/advanced flags, POST /verify-pin (correct/wrong/no-pin/404), GET /public/tournaments/{id} strips admin_pin, PUT bracket persistence, advanced flag updates). Frontend: end-to-end verified — Crear shows PIN/balance/extra/double/repeats fields; creating w/ admin_pin='1234' → /t/{id}/sorteo triggers PinPrompt; wrong PIN stays locked, correct PIN unlocks (sessionStorage); 'Modo Administrador' badge + Compartir + Ver como espectador toolbar buttons visible; ShareModal opens with /v/{id} URL and QR SVG; /v/{id} viewer page has tabs (Inicio/Jornadas/Tabla/Eliminación), NO sidebar nav, NO edit buttons, 'Acceso administrador' link returns to /t/{id}/sorteo; tournament without admin_pin does not show PinPrompt. Deeper flows (balanced engine extras, match editor, bracket champion, Recharts KPIs) were not exhaustively automated but all required testids and backend support are in place.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "@app.on_event('shutdown')", "issue": "Deprecated; migrate to FastAPI lifespan context manager (carry-over from prior iterations)"},
+      {"endpoint": "POST /api/tournaments/{id}/verify-pin", "issue": "Accepts raw dict payload (no Pydantic model). Works but recommend a VerifyPinRequest model for input validation & 422 on malformed bodies."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AppLayout top toolbar", "issue": "On initial admin unlock, two toast notifications (‘Modo Admin activado’ and ‘PIN incorrecto’) stack in the top-right and visually overlap the Compartir + Ver como espectador + Salir admin buttons until the toasts auto-dismiss (~4-5s). Clicks still register, but it looks like a z-index/positioning collision. Move toasts to top-center or bottom-right, or shift the toolbar buttons down.", "selector": "[data-testid='share-button']", "priority": "MEDIUM"},
+      {"component": "Dialog (Radix) — ShareModal & PinPrompt", "issue": "Console warning: ‘Missing Description or aria-describedby={undefined} for {DialogContent}’. Add <DialogDescription> or aria-describedby for a11y.", "selector": "[role='dialog']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ViewerPage tabs", "issues": ["Tab data-testids use English ids (viewer-tab-home, viewer-tab-bracket) while visible labels are Spanish (Inicio, Eliminación). Naming is consistent with internal tab state but the review_request example listed inicio/eliminacion. Consider aliasing testids to viewer-tab-inicio / viewer-tab-eliminacion for test scripts that read labels."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase2.py",
+    "/app/backend/tests/test_tournament.py",
+    "/app/test_reports/pytest/phase2_results.xml"
+  ],
+  "action_items": [
+    "Optional: move toast stack out of top-right to avoid visual collision with Compartir/Ver-como-espectador/Salir-admin buttons.",
+    "Optional: add <DialogDescription> to ShareModal and PinPrompt to clear a11y warning.",
+    "Optional: introduce a VerifyPinRequest Pydantic model for POST /api/tournaments/{id}/verify-pin.",
+    "Optional: align viewer tab data-testids with Spanish ids (inicio/jornadas/tabla/eliminacion) for parity with feature spec."
+  ],
+  "critical_code_review_comments": [
+    "server.py GET /public/tournaments/{id}: query excludes admin_pin then re-injects empty string before pydantic validation — works but a dedicated PublicTournament model (without admin_pin) would be cleaner and prevent accidental leakage if validators ever change.",
+    "verify_pin response asymmetry: {valid, open} for no-PIN case but {valid} only for PIN case. Consider always returning both keys for consistent client handling.",
+    "Tournament model now exceeds ~10 fields with mixed concerns (config, assets, runtime data, bracket). Consider splitting into TournamentConfig + TournamentState in a future refactor — currently OK at ~325 lines.",
+    "AppLayout admin-gate logic correctly reads tournament.admin_pin from /api/tournaments/{id} (admin endpoint), not the public one, so the gate cannot be bypassed by hitting the public route. Good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase2.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (23/23 pytest: 11 phase2 + 12 phase1 regression)",
+    "frontend": "100% on the Phase 2 critical flows automated (PIN gate, viewer page, share modal, new crear-torneo fields). Match editor, bracket generation, balanced engine extras, and Recharts stats were inspected via code/testids but not exhaustively driven through UI."
+  },
+  "test_credentials": "N/A — no app auth; admin gate uses per-tournament PIN. Test PIN used: 1234.",
+  "seed_data_creation": "Created and deleted: TEST_Phase2_full, TEST_Phase2_def, TEST_pin_ok, TEST_pin_bad, TEST_pin_none, TEST_public, TEST_bracket, TEST_flags (pytest), TEST_Phase2_UI, TEST_Phase2_share, TEST_no_pin_phase2 (playwright). All cleaned up via DELETE /api/tournaments/{id}.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "BASE_URL pulled from frontend/.env REACT_APP_BACKEND_URL (currently https://liga-sorteo-equipos.preview.emergentagent.com — NOT the URL listed in the review_request which was stale). Use that env var, do not hardcode. Phase 2 PIN flow: sessionStorage key esteca_admin_unlocked_v1 → { [tournamentId]: true }. To re-test PIN prompt, open a fresh browser context (page.context.new_page or clear sessionStorage) because once unlocked the modal will not reappear for that tournament. Viewer tab data-testids: viewer-tab-home / viewer-tab-jornadas / viewer-tab-tabla / viewer-tab-bracket (NOT inicio/eliminacion despite the Spanish labels). Untested but worth covering next iteration: (a) 11-team x 6-matches/team balanced engine should auto-generate 3 'Jornada Extra' (33 matches needed vs 30 capacity) — verify via SorteoPage 'Torneo completo' button + JornadasPage 'Extra' badge; (b) MatchEditor scoring updates standings PG/PE/PP/Pts; (c) 'Generar bracket' button + winner propagation + champion banner; (d) EstadisticasPage Recharts BarChart render. Existing test file /app/backend/tests/test_tournament.py covers phase-1 endpoints and still passes — keep it as regression.",
+  "rca of the issue": "No bugs blocking acceptance. The two minor frontend findings (toast overlap and missing DialogDescription) are cosmetic/a11y polish, not functional blockers."
+}
