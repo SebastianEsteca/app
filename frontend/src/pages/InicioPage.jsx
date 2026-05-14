@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Search, Layers, Trophy } from 'lucide-react';
@@ -24,6 +24,11 @@ export default function InicioPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [confirmDel, setConfirmDel] = useState(null);
+
+  // Refresh list each time we enter the Inicio page
+  useEffect(() => {
+    refreshList();
+  }, [refreshList]);
 
   const filtered = tournaments.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase())

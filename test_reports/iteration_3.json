@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 3 regression validation for Copa ESTECA 2026. All 3 state-sync regressions from iteration_2 are FIXED. Backend pytest 12/12 PASS. Frontend regression flow verified end-to-end: created TEST_Regression_Iter3 tournament (11 teams + 6 jornadas), added 11 teams via Sorteo, clicked 'Torneo completo' + Generar confirm, then navigated to Jornadas/Tabla/Inicio. Jornadas now shows 30 matches across 6 complete jornadas (was 0). Tabla now shows 11 ranked rows with 4 'Clasifica' badges and PJ counts (top 4 have PJ=6) (was empty). Inicio TournamentCard now shows 11/11 Equipos, 6/6 Jornada, 91% Avance (was 0/11). The useCallback memoized refresh + saveNow bypass-debounce fixes work correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "shutdown handler", "issue": "Still using deprecated @app.on_event('shutdown'); migrate to lifespan context manager (carry-over from iter_2)"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tournament.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "All iteration_2 regressions are resolved. No blocking items remain.",
+    "Optional: migrate @app.on_event('shutdown') to FastAPI lifespan (non-blocking)."
+  ],
+  "critical_code_review_comments": [
+    "SorteoPage.saveNow() correctly fires immediately and runs in parallel with the 250ms debounced save — both call updateTournament for the same {teams,matchdays} payload. This is safe because requests are serialized server-side and the latest write wins, but consider cancelling the pending debounce when saveNow runs to avoid one redundant PUT after each team add.",
+    "JornadasPage / TablaGeneralPage / InicioPage now each call refresh()/refreshList() in useEffect. Because the dependency is the memoized callback, this fires once per mount as intended. Good.",
+    "AppLayout.refresh useCallback depends on [id, loadTournament] — stable as long as id is unchanged; if the user navigates between two tournaments quickly, refresh will rebind and the child useEffect will re-fire, which is the desired behavior."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (12/12 pytest)",
+    "frontend": "100% on the 3 regression scenarios + all previously-passing flows still work"
+  },
+  "test_credentials": "N/A - app has no auth",
+  "seed_data_creation": "Created TEST_Regression_Iter3 tournament during run and cleaned up via DELETE /api/tournaments/{id}. Backend pytest fixtures also clean their TEST_-prefixed tournaments.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend BASE_URL: https://liga-sorteo-equipos.preview.emergentagent.com. Plural endpoints /api/tournaments. Frontend testids reused from iter_2: hero-create-button, submit-create (note: button is below the fold - scroll into view first), add-team-input, add-team-button, generate-tournament-button, nav-jornadas, nav-tabla, nav-inicio, jornada-{n}, standings-row-{n}, tournaments-grid. After clicking 'Torneo completo' an AlertDialog appears — confirm with button text 'Generar'. The Crear-torneo page only has one text input (NOMBRE DEL TORNEO) — pre-filled with 'Copa ESTECA 2026'; clear before typing.",
+  "rca of the issue": "Resolved. Root cause was: (1) AppLayout's tournament context was only loaded once on mount and never refreshed when sibling pages were entered; (2) SorteoPage's debounced PUT could race with navigation, causing the server to receive matchdays before the new teams list. Fixes verified in this iteration: AppLayout exposes a stable refresh() via useCallback([id, loadTournament]), and Jornadas/Tabla/Inicio call refresh()/refreshList() on mount. SorteoPage's saveNow() helper now performs an immediate PUT after team-add, team-remove, manual draw, generate-matchday, generate-tournament, and reset, bypassing the 250 ms debounce."
+}

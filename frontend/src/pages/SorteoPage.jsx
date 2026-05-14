@@ -76,9 +76,22 @@ export default function SorteoPage() {
       updateTournament(tournament.id, { teams, matchdays }).catch(() =>
         toast.error('No se pudo guardar')
       );
-    }, 500);
+    }, 250);
     return () => clearTimeout(t);
   }, [teams, matchdays]); // eslint-disable-line
+
+  // Immediate save (used for critical operations to avoid debounce races)
+  const saveNow = async (nextTeams, nextMatchdays) => {
+    if (!tournament) return;
+    try {
+      await updateTournament(tournament.id, {
+        teams: nextTeams ?? teams,
+        matchdays: nextMatchdays ?? matchdays,
+      });
+    } catch {
+      toast.error('No se pudo guardar');
+    }
+  };
 
   const isFull = (tournament?.teams_count ?? 0) > 0 && teams.length >= (tournament?.teams_count ?? 0);
   const maxPerMd = maxMatchesPerMatchday(tournament?.teams_count ?? 0);
@@ -105,7 +118,9 @@ export default function SorteoPage() {
       color,
       logo,
     };
-    setTeams([...teams, newTeam]);
+    const nextTeams = [...teams, newTeam];
+    setTeams(nextTeams);
+    saveNow(nextTeams, matchdays);
     setName('');
     setShortName('');
     setLogo('');
@@ -114,16 +129,19 @@ export default function SorteoPage() {
   };
 
   const removeTeam = (id) => {
-    setTeams(teams.filter((t) => t.id !== id));
-    // Also remove any matches involving this team
     const t = teams.find((x) => x.id === id);
+    const nextTeams = teams.filter((x) => x.id !== id);
+    let nextMatchdays = matchdays;
     if (t) {
-      setMatchdays(matchdays.map((md) => ({
+      nextMatchdays = matchdays.map((md) => ({
         ...md,
         matches: md.matches.filter((m) => m.teamA !== t.name && m.teamB !== t.name),
         resting: md.resting === t.name ? null : md.resting,
-      })));
+      }));
+      setMatchdays(nextMatchdays);
     }
+    setTeams(nextTeams);
+    saveNow(nextTeams, nextMatchdays);
   };
 
   const handleLogoUpload = async (e) => {
@@ -207,6 +225,7 @@ export default function SorteoPage() {
       if (rest) updated[activeMd] = { ...updated[activeMd], resting: rest.name };
     }
     setMatchdays(updated);
+    saveNow(teams, updated);
     setDrawState(null);
     setSelectedTeam('');
     toast.success(`¡${selectedTeam} vs ${opponent}!`);
@@ -217,6 +236,7 @@ export default function SorteoPage() {
     const res = generateMatchday(activeMd, teams, matchdays, tournament.matches_per_team, tournament.allow_auto_rest);
     if (!res.success) { toast.error(res.message); playError(); return; }
     setMatchdays(res.matchdays);
+    saveNow(teams, res.matchdays);
     playSuccess();
     toast.success(`Jornada ${activeMd + 1} generada`);
   };
@@ -226,6 +246,7 @@ export default function SorteoPage() {
     try {
       const next = generateFullTournament(teams, tournament.matchdays_count);
       setMatchdays(next);
+      saveNow(teams, next);
       playSuccess();
       toast.success('¡Torneo completo generado!');
     } catch (e) {
@@ -234,7 +255,9 @@ export default function SorteoPage() {
   };
 
   const handleReset = () => {
-    setMatchdays(emptyMatchdays(tournament.matchdays_count));
+    const empty = emptyMatchdays(tournament.matchdays_count);
+    setMatchdays(empty);
+    saveNow(teams, empty);
     toast.info('Torneo reiniciado');
   };
 

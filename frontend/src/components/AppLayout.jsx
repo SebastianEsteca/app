@@ -38,6 +38,8 @@ export const AppLayout = () => {
     loadTournament(id);
   }, [id, loadTournament]);
 
+  const refresh = useCallback(() => loadTournament(id), [id, loadTournament]);
+
   return (
     <div className="flex min-h-screen bg-[#0A0E1F] text-white">
       <Sidebar activeTournament={tournament} />
@@ -48,7 +50,7 @@ export const AppLayout = () => {
             tournament,
             tournaments,
             loading,
-            refresh: () => loadTournament(id),
+            refresh,
             refreshList,
             setTournament,
           }}

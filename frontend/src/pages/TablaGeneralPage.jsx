@@ -1,10 +1,16 @@
+import { useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart3, Trophy } from 'lucide-react';
 import { computeStats } from '../utils/tournamentAlgorithm';
 
 export default function TablaGeneralPage() {
-  const { tournament } = useOutletContext();
+  const { tournament, refresh } = useOutletContext();
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
   if (!tournament) {
     return <div className="min-h-screen flex items-center justify-center text-gray-400">Cargando...</div>;
   }
