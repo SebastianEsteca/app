@@ -1,0 +1,143 @@
+{
+  "project_name": "Football Tournament Organizer",
+  "theme": "dark",
+  "archetype": "Archetype 2: The Performance Pro (eSports/Football Variant)",
+  "language": "es",
+  "global_design_principles": [
+    "High-adrenaline, professional athletic feel (FIFA/eSports inspired).",
+    "Deep emerald/grass greens paired with obsidian blacks for a 'night stadium' vibe.",
+    "Data density via 'Control Room' grid for stats and matchday tables.",
+    "Tactical minimalism: 1px solid strokes or inner glow highlights over soft shadows.",
+    "Optical alignment and generous spacing to give breathing room to match data."
+  ],
+  "colors": {
+    "background": "#050A05",
+    "surface": "#0A120A",
+    "surface_elevated": "#111C11",
+    "primary": "#10B981",
+    "primary_hover": "#34D399",
+    "primary_glow": "rgba(16, 185, 129, 0.4)",
+    "accent": "#A3E635",
+    "destructive": "#EF4444",
+    "text_primary": "#F8FAFC",
+    "text_secondary": "#94A3B8",
+    "border": "#1A2E1A",
+    "border_highlight": "#22C55E"
+  },
+  "typography": {
+    "fonts": {
+      "heading": "'Outfit', sans-serif",
+      "body": "'Manrope', sans-serif",
+      "mono": "'JetBrains Mono', monospace"
+    },
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl font-black tracking-tighter text-white",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight text-white",
+      "h3": "text-xl font-semibold tracking-tight text-gray-200",
+      "body": "text-base font-medium leading-relaxed text-gray-300",
+      "label": "text-xs font-bold uppercase tracking-[0.2em] text-gray-400"
+    },
+    "guidelines": "Never use Inter for headings. Keep letter-spacing extremely tight on big text to mimic sports broadcasting graphics."
+  },
+  "layout_spacing": {
+    "grid_system": "Control Room Grid (Dense, Data Correlation). Base: grid-cols-1 md:grid-cols-3 lg:grid-cols-4. Gap: gap-4 or gap-6.",
+    "padding_scale": "Use generous internal padding for sections (p-8 to p-12). For data cards, use p-4 or p-6.",
+    "bento_boxes": "Use h-full on grid children to ensure strict rectangular alignment. No jagged bottoms."
+  },
+  "components_strategy": {
+    "buttons": {
+      "primary": "bg-[#10B981] text-[#050A05] font-bold hover:bg-[#34D399] transition-all rounded-md px-6 py-3 shadow-[0_0_15px_rgba(16,185,129,0.3)]",
+      "secondary": "bg-transparent border border-[#1A2E1A] text-white hover:border-[#10B981] hover:text-[#10B981] rounded-md transition-all",
+      "destructive": "bg-transparent border border-red-500/30 text-red-500 hover:bg-red-500/10 rounded-md"
+    },
+    "cards": {
+      "base": "bg-[#0A120A] border border-[#1A2E1A] rounded-lg overflow-hidden",
+      "matchday": "bg-[#111C11] border border-[#1A2E1A] rounded-lg p-4 hover:-translate-y-1 hover:border-[#10B981]/50 transition-all duration-300",
+      "glass": "backdrop-blur-xl bg-[#050A05]/80 border border-white/5"
+    },
+    "inputs": {
+      "base": "bg-[#050A05] border border-[#1A2E1A] text-white focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] rounded-md rounded-md transition-all"
+    }
+  },
+  "interactions_and_motion": {
+    "roulette_animation": {
+      "engine": "framer-motion",
+      "behavior": "Fast vertical or horizontal scroll of team names, easing out over 3-5 seconds to land on the opponent.",
+      "visuals": "The active selection box must have a glowing 'Tracing Beam' border or solid #10B981 border with drop-shadow glow."
+    },
+    "page_transitions": "Staggered fade-ins (0.1s delay per item) for lists and matchday cards using framer-motion.",
+    "sounds": "Use Web Audio API. Synthetic short 'tick' sounds for roulette spinning, and a digital 'success/whistle' synth chord when match is revealed."
+  },
+  "views_and_features": {
+    "initial_screen": {
+      "description": "Form to manually add exactly 11 teams.",
+      "elements": [
+        "Input field with 'Agregar equipo' button.",
+        "List of added teams with a remove icon.",
+        "Validation to ensure exactly 11 teams before proceeding."
+      ]
+    },
+    "draw_screen": {
+      "description": "The main action center for the tournament draw.",
+      "elements": [
+        "Select team dropdown or grid.",
+        "Roulette component for opponent selection.",
+        "'Generar jornada automáticamente' button.",
+        "'Generar torneo completo automáticamente' button.",
+        "'Reiniciar torneo' button (Destructive)."
+      ]
+    },
+    "matchday_tables": {
+      "description": "6 distinct tables/grids showing the schedule.",
+      "layout": "Bento grid displaying 6 matchdays. Each card represents a matchday.",
+      "content": "Shows 'Partido 1, Partido 2...' and explicitly 'Equipo que descansa' (Resting team) highlighted in a different color (e.g., text-gray-400)."
+    },
+    "statistics_panel": {
+      "description": "Data summary of the tournament.",
+      "metrics": [
+        "Matches played per team.",
+        "Remaining opponents.",
+        "List of teams that have already rested.",
+        "Overall tournament progress (Progress bar)."
+      ]
+    },
+    "export": {
+      "behavior": "A prominent 'Exportar a PDF/Imagen' button using a library like html2canvas or jsPDF to capture the Matchday tables."
+    }
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "usage": "Use bold or duotone weights to match the athletic UI. Do not use thin icons."
+  },
+  "media": {
+    "stadium_bg": {
+      "url": "https://images.unsplash.com/photo-1706675780107-7c43cc487928?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwyfHxmb290YmFsbCUyMHN0YWRpdW0lMjBsaWdodHMlMjBuaWdodHxlbnwwfHx8fDE3Nzg3NDU2ODF8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Night football stadium to be used as a heavily darkened, blurred background overlay (e.g., opacity-10) for the main application wrapper."
+    },
+    "emerald_texture": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/40819d5c-b634-4194-890c-b61121fc4890/images/5044fb286841c255ba17032c5bceee072d8fdb81946a8f971b785b67baeeacaf.png",
+      "description": "Abstract emerald digital texture. Use for hero banners, active state backgrounds, or the roulette component background."
+    },
+    "tournament_logo": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/40819d5c-b634-4194-890c-b61121fc4890/images/1b42deb466807e57e54048825729b75f3f7578931039b8346967e8747b6e4b56.png",
+      "description": "Tournament emblem. Place in the top-left header or center of the initial entry screen."
+    }
+  },
+  "testing_attributes": {
+    "rule": "ALL interactive elements MUST include a data-testid attribute in kebab-case representing their role.",
+    "examples": [
+      "data-testid='add-team-input'",
+      "data-testid='add-team-button'",
+      "data-testid='generate-matchday-button'",
+      "data-testid='generate-tournament-button'",
+      "data-testid='reset-tournament-button'",
+      "data-testid='export-pdf-button'",
+      "data-testid='roulette-container'"
+    ]
+  },
+  "technical_notes": {
+    "react_files": "Use .js or .jsx extensions. Do not use .tsx.",
+    "shadcn_customization": "Modify Shadcn components directly in their files to map to the colors defined above. Strip out generic styles.",
+    "accessibility": "Ensure contrast ratios pass on dark backgrounds. Focus rings must be visible."
+  }
+}
