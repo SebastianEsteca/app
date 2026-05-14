@@ -234,7 +234,7 @@ const ViewerJornadas = ({ tournament }) => {
   const matchdays = tournament.matchdays || [];
   return (
     <div className="space-y-5">
-      {matchdays.map((md) => {
+      {matchdays.map((md, mdIdx) => {
         const counts = new Map();
         md.matches.forEach((m) => {
           counts.set(m.teamA, (counts.get(m.teamA) || 0) + 1);
@@ -242,15 +242,23 @@ const ViewerJornadas = ({ tournament }) => {
         });
         const doubles = new Set();
         counts.forEach((c, t) => { if (c > 1) doubles.add(t); });
+        const extraIdx = md.is_extra
+          ? matchdays.slice(0, mdIdx + 1).filter((m) => m.is_extra).length
+          : 0;
 
         return (
           <div key={md.number} className="bg-[#121830] border border-[#2A3458] rounded-xl overflow-hidden" data-testid={`viewer-jornada-${md.number}`}>
-            <div className="px-5 py-3 flex items-center gap-3 bg-[#0F1428] border-b border-[#2A3458]">
+            <div className="px-5 py-3 flex items-center gap-3 flex-wrap bg-[#0F1428] border-b border-[#2A3458]">
               <Calendar className="w-4 h-4 text-orange-400" />
-              <p className="text-white font-['Outfit'] font-bold">Jornada {String(md.number).padStart(2, '0')}</p>
+              <p className="text-white font-['Outfit'] font-bold">
+                {md.is_extra ? `Jornada Extra ${extraIdx}` : `Jornada ${String(md.number).padStart(2, '0')}`}
+              </p>
               {md.is_extra && (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-orange-500/15 text-orange-300 border border-orange-500/30 flex items-center gap-1">
-                  <Zap className="w-3 h-3" />Extra
+                <span
+                  title="Jornada generada automáticamente para equilibrar los partidos"
+                  className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-orange-500/15 text-orange-300 border border-orange-500/30 flex items-center gap-1"
+                >
+                  <Zap className="w-3 h-3" />Generada automáticamente
                 </span>
               )}
               {doubles.size > 0 && (

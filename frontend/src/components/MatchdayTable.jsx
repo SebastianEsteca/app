@@ -2,9 +2,10 @@ import { motion } from 'framer-motion';
 import { Calendar, Coffee, CheckCircle2, Swords } from 'lucide-react';
 import { maxMatchesPerMatchday } from '../utils/tournamentAlgorithm';
 
-export const MatchdayTable = ({ matchday, index, totalTeams }) => {
+export const MatchdayTable = ({ matchday, index, totalTeams, extraIndex = 0 }) => {
   const expected = maxMatchesPerMatchday(totalTeams);
-  const complete = matchday.matches.length >= expected && expected > 0;
+  const complete = matchday.matches.length >= expected && expected > 0 && !matchday.is_extra;
+  const isExtra = !!matchday.is_extra;
 
   return (
     <motion.div
@@ -12,25 +13,35 @@ export const MatchdayTable = ({ matchday, index, totalTeams }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       className={`bg-[#121830] border rounded-xl p-5 transition-all ${
-        complete
-          ? 'border-yellow-500/60 shadow-[0_0_22px_rgba(255,193,7,0.18)]'
-          : 'border-[#2A3458]'
+        isExtra
+          ? 'border-orange-500/60 shadow-[0_0_22px_rgba(242,99,33,0.18)]'
+          : complete
+            ? 'border-yellow-500/60 shadow-[0_0_22px_rgba(255,193,7,0.18)]'
+            : 'border-[#2A3458]'
       }`}
       data-testid={`matchday-card-${matchday.number}`}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-md bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
             <Calendar className="w-4 h-4 text-orange-400" />
           </div>
           <div>
-            <p className="label-caps">Jornada</p>
+            <p className="label-caps">{isExtra ? 'Jornada Extra' : 'Jornada'}</p>
             <p className="text-xl font-['Outfit'] font-black text-white">
-              {String(matchday.number).padStart(2, '0')}
+              {isExtra ? extraIndex : String(matchday.number).padStart(2, '0')}
             </p>
           </div>
         </div>
-        {complete && (
+        {isExtra && (
+          <span
+            title="Jornada generada automáticamente para equilibrar los partidos"
+            className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-orange-500/15 text-orange-300 border border-orange-500/30"
+          >
+            Generada auto.
+          </span>
+        )}
+        {complete && !isExtra && (
           <div className="flex items-center gap-1 text-yellow-300">
             <CheckCircle2 className="w-4 h-4" />
             <span className="label-caps !text-yellow-300">Completa</span>

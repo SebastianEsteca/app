@@ -542,12 +542,23 @@ export default function SorteoPage() {
             <div ref={exportRef} className="bg-[#0A0E1F] p-4 rounded-xl">
               <div className="flex items-center gap-2 mb-4 px-2">
                 <Trophy className="w-4 h-4 text-orange-400" />
-                <p className="label-caps">Calendario · {tournament.matchdays_count} jornadas</p>
+                <p className="label-caps">Calendario · {matchdays.length} jornadas{matchdays.filter((m) => m.is_extra).length > 0 ? ` (${matchdays.filter((m) => m.is_extra).length} extra)` : ''}</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {matchdays.map((md, i) => (
-                  <MatchdayTable key={md.number} matchday={md} index={i} totalTeams={tournament.teams_count} />
-                ))}
+                {matchdays.map((md, i) => {
+                  const extraIndex = md.is_extra
+                    ? matchdays.slice(0, i + 1).filter((m) => m.is_extra).length
+                    : 0;
+                  return (
+                    <MatchdayTable
+                      key={md.number}
+                      matchday={md}
+                      index={i}
+                      totalTeams={tournament.teams_count}
+                      extraIndex={extraIndex}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}

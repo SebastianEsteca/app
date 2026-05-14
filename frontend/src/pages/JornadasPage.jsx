@@ -87,6 +87,10 @@ export default function JornadasPage() {
             const complete = md.matches.length >= expected && expected > 0 && !md.is_extra;
             const isExtra = !!md.is_extra;
             const doubles = doubleByMd[mdIdx];
+            // Compute 1-based index counting only extra jornadas up to here
+            const extraIdx = isExtra
+              ? matchdays.slice(0, mdIdx + 1).filter((m) => m.is_extra).length
+              : 0;
 
             return (
               <motion.div
@@ -98,14 +102,17 @@ export default function JornadasPage() {
                 data-testid={`jornada-${md.number}`}
               >
                 <div className="px-5 py-3 flex items-center justify-between gap-2 bg-[#0F1428] border-b border-[#2A3458]">
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-wrap">
                     <Calendar className="w-4 h-4 text-orange-400 shrink-0" />
                     <p className="text-white font-['Outfit'] font-bold">
-                      Jornada {String(md.number).padStart(2, '0')}
+                      {isExtra ? `Jornada Extra ${extraIdx}` : `Jornada ${String(md.number).padStart(2, '0')}`}
                     </p>
                     {isExtra && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/15 text-orange-300 border border-orange-500/30 flex items-center gap-1">
-                        <Zap className="w-3 h-3" />Extra
+                      <span
+                        title="Jornada generada automáticamente para equilibrar los partidos"
+                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/15 text-orange-300 border border-orange-500/30 flex items-center gap-1"
+                      >
+                        <Zap className="w-3 h-3" />Generada automáticamente
                       </span>
                     )}
                     {doubles.size > 0 && (
