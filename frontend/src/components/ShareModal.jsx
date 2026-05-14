@@ -28,6 +28,9 @@ export const ShareModal = ({ open, onOpenChange, tournament }) => {
             <Share2 className="w-5 h-5 text-orange-400" />
             Compartir torneo
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Comparte este torneo con espectadores mediante un enlace público o un código QR.
+          </DialogDescription>
         </DialogHeader>
 
         <p className="text-sm text-gray-400">

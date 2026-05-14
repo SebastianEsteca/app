@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Lock, KeyRound } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { toast } from 'sonner';
@@ -43,6 +43,9 @@ export const PinPrompt = ({ open, onOpenChange, tournamentId, onUnlock }) => {
             <Lock className="w-5 h-5 text-orange-400" />
             Modo Administrador
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Ingresa el PIN de 4 dígitos del torneo para activar las funciones de edición.
+          </DialogDescription>
         </DialogHeader>
         <p className="text-sm text-gray-400">
           Ingresa el PIN del torneo para acceder a las funciones de edición.

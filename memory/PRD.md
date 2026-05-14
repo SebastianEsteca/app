@@ -1,48 +1,59 @@
 # Copa ESTECA 2026 — Plataforma Multi-Torneo (PRD)
 
 ## Original Problem Statement
-Update and improve existing React + Tailwind tournament app into dynamic multi-tournament platform with configurable settings, all in Spanish. Brand: "Copa ESTECA 2026". Required modules: Inicio, Sorteo, Jornadas y partidos, Tabla general, Eliminación directa, Estadísticas, Créditos. Crear torneo with: nombre, cantidad equipos, jornadas, clasifican, tipo (Liga / Liga+KO / KO), partidos por equipo, descansos automáticos, generación automática, logo principal + secundario. Teams with colors, logo, abreviatura. PDF/Image export. Dark mode FIFA/eSports aesthetic with neon glow, animated gradients.
+Tournament management platform 100% in Spanish (Copa ESTECA 2026). Multi-tournament + dynamic config + Modo Espectador + advanced flexible scheduling engine + admin PIN gate + bracket + scoring/standings + shareable QR.
 
-## User Choices (2026-05-14 Phase 2)
-- Persistencia: **MongoDB** (mantener)
-- Logos: **Provistos por el usuario** (Copa ESTECA 2026 + ESTECA-PC)
-- Paleta: **Combinada** — azul oscuro + naranja + dorado + blanco + negro, con verde como acento secundario
-- Alcance: **Fase 1 ahora**, Fase 2 después
+## User Choices Across Phases
+- Persistencia: MongoDB
+- Paleta combinada: azul oscuro / naranja / dorado / verde acento
+- Auth: PIN del torneo (4 dígitos)
+- Match editing: incluido
+- Bracket: completo (Octavos→Cuartos→Semis→Final con champion)
+- QR: incluido vía qrcode.react
 
 ## Architecture
-- Backend: FastAPI + MongoDB. Collection `tournaments_v2`. Endpoints `/api/tournaments`, `/api/tournaments/{id}` (GET list, POST create, GET one, PUT update, DELETE remove). Auto-summary computed (teams_registered, current_matchday, progress).
-- Frontend: React 19 + Tailwind + shadcn/ui + framer-motion + lucide-react + html2canvas + jsPDF. React Router v7 with `AppLayout` (sidebar) + nested routes. Tournament context loaded per `:id`.
-- Algoritmo: round-robin (método del círculo) genérico, con backtracking para per-matchday y descansos automáticos para conteos impares.
+- Backend: FastAPI + MongoDB (`tournaments_v2`). Endpoints:
+  - GET/POST /api/tournaments, GET/PUT/DELETE /api/tournaments/{id}
+  - GET /api/public/tournaments/{id} (admin_pin stripped)
+  - POST /api/tournaments/{id}/verify-pin
+- Frontend: React 19 + Tailwind + shadcn/ui + framer-motion + lucide-react + recharts + qrcode.react + html2canvas/jspdf.
+- Routing: /v/:id (espectador sin sidebar) + /, /crear, /creditos, /t/:id/{sorteo|jornadas|tabla|eliminacion|estadisticas}
+- Admin gate: AppLayout checks tournament.admin_pin + sessionStorage → triggers PinPrompt; closing → redirect a viewer.
 
-## Implemented Modules (Phase 1 — completado 2026-05-14)
-1. **Inicio**: dashboard con cards de todos los torneos (logo, progreso, equipos, jornada actual), búsqueda, hero "Copa ESTECA 2026", AlertDialog de eliminación.
-2. **Crear torneo**: formulario con 4 secciones (información general, numérica, reglas, identidad visual). Upload de logos (base64).
-3. **Sorteo**: registro de equipos (nombre, abreviatura, color, logo), sorteo manual con ruleta animada (bug del rival visualizado-vs-real ARREGLADO), generación de jornada y torneo completo, reset con AlertDialog, sound toggle, export PDF/imagen, matchday tabs con indicador de completitud.
-4. **Jornadas y partidos**: visualización detallada por jornada con badges de estado (Pendiente/En curso/Finalizado).
-5. **Tabla general**: ranking dinámico, zona de clasificación destacada (top N).
-6. **Créditos**: tarjetas animadas para Sebastián Reyes, Ana Girón, Herbeth Ruano, Estuardo del Cid + branding ESTECA-PC.
+## Algoritmos
+- **`tournamentAlgorithm.js`**: `generateBalancedTournament` garantiza partidos iguales por equipo. Round-robin base + scheduling con prioridades (1) equipos con menor PJ; (2) sin repetidos; (3) sin dobles; (4) descansos balanceados; (5) min extras. Crea "Jornada Extra" automáticamente si hace falta. Flags configurables: `allow_double_matches`, `allow_extra_matchdays`, `allow_repeated_opponents`, `balance_level`.
+- **`standings.js`**: PJ/PG/PE/PP/GF/GC/DG/Pts (3-1-0) calculado en vivo desde matches con `status='finished'`.
+- **`bracket.js`**: snap a tamaño 2/4/8/16/32; pairings 1-N, 2-(N-1)...; propagación automática de ganadores.
 
-## Deferred (Phase 2)
-- **Eliminación directa**: bracket dinámico (Octavos, Cuartos, Semifinal, Final) basado en tabla general; emparejamientos 1ro vs último, 2do vs penúltimo, etc.
-- **Estadísticas**: gráficos con Recharts (goles, mejor ataque/defensa, top teams, progress).
-- **Edición de partido**: fecha, hora, resultado, estado.
-- **Import/Export JSON** del torneo completo.
+## Phase 1 (2026-05-14) — DONE
+Inicio, Crear, Sorteo (con ruleta), Jornadas (visualización), Tabla básica (sin goles), Créditos, AppLayout con sidebar, persistencia MongoDB.
 
-## Verified (testing iteration_3, 2026-05-14)
-- Backend pytest: **12/12 pasando**.
-- Frontend regresiones de iter_2 (Jornadas/Tabla/Inicio stale state): **arregladas**.
-- 100% de flujos previos siguen funcionando.
+## Phase 2 (2026-05-14) — DONE
+- Motor de scheduling flexible con jornadas extra/dobles configurable
+- Edición de marcador / fecha / hora / estado por partido (admin only)
+- Standings con goles, puntos, DG (3-1-0)
+- Bracket eliminación dinámico (Cuartos/Semis/Final) con champion banner
+- Estadísticas con gráficos Recharts (GF/GC, puntos, KPIs)
+- **Modo Espectador** `/v/:id` con tabs (Inicio/Jornadas/Tabla/Eliminación), 100% read-only
+- **Compartir torneo** modal con URL pública + QR
+- **PIN gate** (sessionStorage)
+- SummaryPanel en Sorteo (balance %, partidos requeridos vs programados, equipos pendientes)
+- Indicadores visuales: "Jornada Extra", "Doble jornada"
+- A11y: DialogDescription added; toasts moved bottom-right to avoid toolbar overlap
 
-## Backlog Phase 2 (P1 → P3)
-- P1: Bracket de eliminación directa con generación automática y animación
-- P1: Edición fecha/hora/resultado/estado por partido + recálculo automático de tabla con goles
-- P1: Gráficos Recharts en Estadísticas
-- P2: Import/Export JSON de torneo completo
-- P2: Standings con PG/PE/PP/GF/GC/DG/Pts
-- P3: Búsqueda y filtros avanzados en jornadas
-- P3: Cambio de tema light/dark
-- P3: Sonido de celebración personalizado al completar jornada
+## Tested (iteration_4, 2026-05-14)
+- Backend: 23/23 pytest (11 Phase 2 + 12 Phase 1 regression)
+- Frontend: PIN gate, viewer page, share modal con QR, nuevos campos de Crear torneo, todos los flujos previos pasan.
 
-## Próximas tareas inmediatas
-1. Esperar feedback del usuario sobre Phase 1.
-2. Si aprueba, comenzar Fase 2 priorizando: edición de partidos (resultado/fecha/hora) → recalcular Tabla con goles → bracket de eliminación.
+## Backlog Phase 3 (P1 → P3)
+- P2: Import/Export JSON del torneo completo
+- P2: Drag-and-drop reordenar partidos dentro de jornada
+- P2: Bracket "tercer puesto" opcional
+- P3: Notificaciones en vivo (websocket o polling) para actualizaciones del espectador
+- P3: Modo presentación pantalla completa para sorteo en vivo
+- P3: Tema light/dark toggle
+- P3: Exportar bracket / tabla individual a PDF/PNG
+
+## Próximas tareas
+1. Esperar feedback del usuario sobre Fase 2.
+2. Si solicita Phase 3, priorizar Import/Export JSON (1 jornada de trabajo) y modo presentación pantalla completa (gran impacto en uso real para el día del sorteo).
