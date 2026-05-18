@@ -30,9 +30,17 @@ export default function InicioPage() {
     refreshList();
   }, [refreshList]);
 
+  /*
   const filtered = tournaments.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase())
   );
+  */
+
+  const filtered = Array.isArray(tournaments)
+  ? tournaments.filter((t) =>
+      t.name.toLowerCase().includes(search.toLowerCase())
+    )
+  : [];
 
   const handleDelete = async () => {
     if (!confirmDel) return;
