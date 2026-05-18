@@ -51,8 +51,13 @@ export default function ViewerPage() {
 
   const standings = computeStandings(tournament.teams || [], tournament.matchdays || []);
   const totalScheduled = (tournament.matchdays || []).reduce((a, md) => a + md.matches.length, 0);
+  /*
   const totalFinished = (tournament.matchdays || []).reduce(
     (a, md) => a + md.matches.filter((m) => m.status === 'finished').length, 0
+  );
+  */
+  const totalFinished = ( Array.isArray(tournament.matchdays) ? tournament.matchdays : [] ).reduce( 
+    (a, md) => a + ( Array.isArray(md.matches) ? md.matches : [] ).filter((m) => m.status === 'finished').length, 0 
   );
   const progress = totalScheduled > 0 ? (totalFinished / totalScheduled) * 100 : 0;
 
