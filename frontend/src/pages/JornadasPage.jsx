@@ -89,7 +89,8 @@ export default function JornadasPage() {
             const doubles = doubleByMd[mdIdx];
             // Compute 1-based index counting only extra jornadas up to here
             const extraIdx = isExtra
-              ? matchdays.slice(0, mdIdx + 1).filter((m) => m.is_extra).length
+              ? /*matchdays.slice(0, mdIdx + 1).filter((m) => m.is_extra).length*/
+              (Array.isArray(matchdays) ? matchdays : []).filter((m) => m.is_extra)
               : 0;
 
             return (
@@ -213,3 +214,7 @@ export default function JornadasPage() {
     </div>
   );
 }
+
+console.log("InicioPage render", tournament)
+console.log("SorteoPage render", teams)
+console.log("JornadasPage render", matchdays)
