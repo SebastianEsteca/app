@@ -75,7 +75,7 @@ export default function ViewerPage() {
             data-testid="viewer-enter-admin"
             className="hidden sm:flex items-center gap-2 text-xs px-3 py-2 rounded-md bg-[#1A2240] border border-[#2A3458] text-gray-300 hover:text-orange-300 hover:border-orange-500/50 transition"
           >
-            <Lock className="w-3.5 h-3.5" />Acceso administrador
+            {/*  <Lock className="w-3.5 h-3.5" />Acceso administrador */}
           </Link>
         </div>
         <div className="max-w-[1400px] mx-auto px-2 sm:px-6 pb-2 flex gap-1 overflow-x-auto">
