@@ -136,7 +136,7 @@ export default function SorteoPage() {
 
   const removeTeam = (id) => {
     const t = teams.find((x) => x.id === id);
-    const nextTeams = (Array.isArray(teams) ? teams : []).filter((x) => x.id !== id); //teams.filter((x) => x.id !== id);
+    const nextTeams = teams.filter((x) => x.id !== id);
     let nextMatchdays = matchdays;
     if (t) {
       nextMatchdays = matchdays.map((md) => ({
