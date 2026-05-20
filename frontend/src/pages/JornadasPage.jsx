@@ -213,7 +213,3 @@ export default function JornadasPage() {
     </div>
   );
 }
-
-console.log("InicioPage render", tournament)
-console.log("SorteoPage render", teams)
-console.log("JornadasPage render", matchdays)
